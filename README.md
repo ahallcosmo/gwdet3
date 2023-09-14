@@ -1,3 +1,7 @@
+# gwdet3
+
+### A fork of gwdet translated to Python3 by Alex Hall. See original readme below.
+
 # gwdet
 
 #### Detectability of gravitational-wave signals from compact binary coalescences
