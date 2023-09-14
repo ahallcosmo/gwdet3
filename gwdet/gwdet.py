@@ -1,18 +1,18 @@
 '''
+gwdet3: fork of gwdet updated to Python3:
+
 gwdet: detectability of gravitational-wave signals from compact binary coalescences
 https://github.com/dgerosa/gwdet
 '''
 
-from __future__ import print_function,division
 import sys
 import os
 import contextlib
 import io
-import urllib
+import urllib.request
 import time
 import warnings
-import six
-from six.moves import cPickle as pickle
+import pickle
 import multiprocessing
 
 import requests
@@ -21,13 +21,7 @@ import astropy.cosmology
 import scipy.stats
 import scipy.interpolate
 import pathos.multiprocessing
-
-
-__author__ = "Davide Gerosa"
-__license__ = "MIT"
-__version__ = "0.1.1"
-__email__ = "dgerosa@caltech.edu"
-this_module='gwdet'
+from functools import reduce
 
 @contextlib.contextmanager
 def nostdout():
@@ -85,7 +79,9 @@ defaults={  'directory' : os.path.dirname(__file__),
 
 class averageangles(object):
     '''
-    Compute the detection probability, averaged over all angles (sky location, polarization, inclination, etc), as a function of the projection parameter w. This is defined in arxiv:9301003, but here we follow the notation of arxiv:1405.7016
+    Compute the detection probability, averaged over all angles (sky location, polarization, inclination, etc), 
+    as a function of the projection parameter w. This is defined in arxiv:9301003, but here we follow the 
+    notation of arxiv:1405.7016
 
     Usage:
         p = averageangles(directory=os.path.dirname(__file__), binfile=None, mcn=int(1e8), mcbins=int(1e5))
@@ -579,7 +575,7 @@ def compare_Pw():
 
     # Download file from Emanuele Berti's website if it does not exist
     if not os.path.isfile("Pw_single.dat"):
-        urllib.urlretrieve('http://www.phy.olemiss.edu/~berti/research/Pw_single.dat', "Pw_single.dat")
+        urllib.request.urlretrieve('http://www.phy.olemiss.edu/~berti/research/Pw_single.dat', "Pw_single.dat")
 
     wEm,PwEm=np.loadtxt("Pw_single.dat",unpack=True)
     wmy = np.linspace(-0.1,1.1,1000)
