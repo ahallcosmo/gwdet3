@@ -23,6 +23,12 @@ import scipy.interpolate
 import pathos.multiprocessing
 from functools import reduce
 
+__author__ = "Davide Gerosa"
+__license__ = "MIT"
+__version__ = "0.1.1"
+__email__ = "dgerosa@caltech.edu"
+this_module='gwdet'
+
 @contextlib.contextmanager
 def nostdout():
     ''' Locally suppress stoud print. See https://stackoverflow.com/a/2829036'''
@@ -318,7 +324,7 @@ class detectability(object):
 
         snr=[]
         for m1,m2,z in zip(m1_vals,m2_vals,z_vals):
-            lum_dist = astropy.cosmology.Planck15.luminosity_distance(z).value # luminosity distance in Mpc
+            lum_dist = astropy.cosmology.Planck18.luminosity_distance(z).value # luminosity distance in Mpc
 
             assert self.has_pycbc, "pycbc is needed"
             hp, hc = pycbc.waveform.get_fd_waveform(approximant=self.approximant,
@@ -371,7 +377,7 @@ class detectability(object):
         ''' Utility method '''
 
         m1,m2,z=data
-        ld = astropy.cosmology.Planck15.luminosity_distance(z).value
+        ld = astropy.cosmology.Planck18.luminosity_distance(z).value
         snrint = self.snrinterpolant()
         snr = snrint([m1*(1+z),m2*(1+z)])/ld
         Pw= self.pdetproj().eval(self.snrthreshold/snr)
