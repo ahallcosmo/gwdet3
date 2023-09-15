@@ -15,13 +15,11 @@ import warnings
 import pickle
 import multiprocessing
 
-import requests
 import numpy as np
 import astropy.cosmology
 import scipy.stats
 import scipy.interpolate
 import pathos.multiprocessing
-from functools import reduce
 
 __author__ = "Davide Gerosa"
 __license__ = "MIT"
