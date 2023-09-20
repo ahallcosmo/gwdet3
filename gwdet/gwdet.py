@@ -9,6 +9,7 @@ import sys
 import os
 import contextlib
 import io
+from tkinter import Y
 import urllib.request
 import time
 import warnings
@@ -44,6 +45,7 @@ with nostdout(): # pycbc prints a very annyoing new line when imported
     except:
         warnings.warn("Can't import pycbc",ImportWarning)
         has_pycbc=False
+
 
 def plotting():
     ''' Import stuff for plotting'''
@@ -246,6 +248,7 @@ class detectability(object):
                         directory=defaults['directory'],
                         binfile=None,
                         binfilepdet=None,
+                        snrfile=None,
                         mc1d=defaults['mc1d'],
                         mcn=defaults['mcn'],
                         mcbins=defaults['mcbins'],
@@ -275,18 +278,22 @@ class detectability(object):
             #self.binfileonly = self.__class__.__name__+'_'+'_'.join([x+'_'+str(eval(x)) for x in ['approximant','psd','flow','deltaf','snrthreshold','massmin','massmax','zmin','zmax','mc1d']]) +'.pkl'
             self.binfileonly = self.__class__.__name__+'_'+'_'.join([k+'_'+str(v) for k,v in zip(['approximant','psd','flow','deltaf','snrthreshold','massmin','massmax','zmin','zmax','mc1d'],[self.approximant,self.psd,self.flow,self.deltaf,self.snrthreshold,self.massmin,self.massmax,self.zmin,self.zmax,self.mc1d])]) +'.pkl'
 
+        if snrfile is None:
+            self.snrfileonly = self.__class__.__name__+'_gwdet3_'+'_'.join([k+'_'+str(v) for k,v in zip(['approximant','psd','flow','deltaf','snrthreshold','massmin','massmax','zmin','zmax','mc1d'],[self.approximant,self.psd,self.flow,self.deltaf,self.snrthreshold,self.massmin,self.massmax,self.zmin,self.zmax,self.mc1d])]) +'.pkl'
 
         if self.directory=='':
             self.directory='.'
-        self.binfile=self.directory+'/'+self.binfileonly
 
-        #self.tempfile=directory+'/temp.pkl'
+        self.binfile=os.path.join(self.directory, self.binfileonly)
+        self.snrfile=os.path.join(self.directory, self.snrfileonly)
+
+        #self.snrfile=directory+'/temp.pkl'
 
         # Flags
         self.screen=screen
         self.parallel=parallel
         # Initialize a pool to run parallel jobs. See https://stackoverflow.com/a/29030149/4481987
-        if self.parallel and not os.path.isfile(self.binfile):
+        if self.parallel and not (os.path.isfile(self.binfile) or os.path.isfile(self.snrfile)):
             self.map = pathos.multiprocessing.ProcessingPool(multiprocessing.cpu_count()).imap
         self.has_pycbc=has_pycbc
 
@@ -377,7 +384,7 @@ class detectability(object):
         m1,m2,z=data
         ld = astropy.cosmology.Planck18.luminosity_distance(z).value
         snrint = self.snrinterpolant()
-        snr = snrint([m1*(1+z),m2*(1+z)])/ld
+        snr = snrint(np.transpose([m1*(1+z),m2*(1+z)]))/ld
         Pw= self.pdetproj().eval(self.snrthreshold/snr)
 
         return Pw
@@ -387,77 +394,78 @@ class detectability(object):
 
 
         if self._snrinterpolant is None:
-
-            assert self.has_pycbc, 'pycbc is needed'
-
+                
             # Takes some time. Store a pickle...
+            if not os.path.isfile(self.snrfile):
+                if not os.path.exists(self.directory) and self.directory!='':
+                    os.makedirs(self.directory)
 
-            # Takes some time. Store a pickle...
-            #if not os.path.isfile(self.tempfile):
+                assert self.has_pycbc, 'pycbc is needed'
 
+                print('['+this_module+'] Storing: '+self.snrfile)
 
-            print('['+this_module+'] Interpolating SNR...')
+                print('['+this_module+'] Interpolating SNR...')
 
-            # See https://stackoverflow.com/a/30059599
+                # See https://stackoverflow.com/a/30059599
 
-            m1z_grid = np.linspace(self.massmin*(1.+self.zmin),self.massmax*(1.+self.zmax),self.mc1d) # Redshifted mass 1
-            m2z_grid = np.linspace(self.massmin*(1.+self.zmin),self.massmax*(1.+self.zmax),self.mc1d) # Redshifted mass 1
-            grids=[m1z_grid,m2z_grid]
+                m1z_grid = np.linspace(self.massmin*(1.+self.zmin),self.massmax*(1.+self.zmax),self.mc1d) # Redshifted mass 1
+                m2z_grid = np.linspace(self.massmin*(1.+self.zmin),self.massmax*(1.+self.zmax),self.mc1d) # Redshifted mass 1
+                grids=[m1z_grid,m2z_grid]
 
-            #meshgrid=np.zeros(reduce(lambda x,y:x*y, [len(x) for x in grids]))
+                #meshgrid=np.zeros(reduce(lambda x,y:x*y, [len(x) for x in grids]))
 
-            #print(reduce(lambda x,y:x*y, [len(x) for x in grids]))
-            meshgrid=[]
-            meshcoord=[]
-            for i,m1z in enumerate(m1z_grid):
-                for j,m2z in enumerate(m2z_grid):
-                        meshcoord.append([i,j])
-                        meshgrid.append([m1z,m2z])
-            meshgrid=np.array(meshgrid)
-            meshcoord=np.array(meshcoord)
+                #print(reduce(lambda x,y:x*y, [len(x) for x in grids]))
+                meshgrid=[]
+                meshcoord=[]
+                for i,m1z in enumerate(m1z_grid):
+                    for j,m2z in enumerate(m2z_grid):
+                            meshcoord.append([i,j])
+                            meshgrid.append([m1z,m2z])
+                meshgrid=np.array(meshgrid)
+                meshcoord=np.array(meshcoord)
 
-            if self.parallel:
+                if self.parallel:
 
-                # Shuffle the arrays: https://stackoverflow.com/a/4602224/4481987
-                # Useful to better ditribute load across processors
-                if True:
-                    assert len(meshcoord)==len(meshgrid)
-                    p = np.random.permutation(len(meshcoord))
-                    meshcoord = meshcoord[p]
-                    meshgrid = meshgrid[p]
+                    # Shuffle the arrays: https://stackoverflow.com/a/4602224/4481987
+                    # Useful to better ditribute load across processors
+                    if True:
+                        assert len(meshcoord)==len(meshgrid)
+                        p = np.random.permutation(len(meshcoord))
+                        meshcoord = meshcoord[p]
+                        meshgrid = meshgrid[p]
 
-                #pool = multiprocessing.Pool(processes=multiprocessing.cpu_count())
-                #meshvalues = pool.imap(snr_pickable, meshgrid)
-                #pool.close() # No more work
-                #meshvalues = pool.imap(self._snr, meshgrid)
+                    #pool = multiprocessing.Pool(processes=multiprocessing.cpu_count())
+                    #meshvalues = pool.imap(snr_pickable, meshgrid)
+                    #pool.close() # No more work
+                    #meshvalues = pool.imap(self._snr, meshgrid)
 
-                meshvalues= self.map(self._snr, meshgrid)
-                while (True):
-                    completed = meshvalues._index
-                    if (completed == len(meshgrid)): break
-                    print('   [multiprocessing] Waiting for', len(meshgrid)-completed, 'tasks...')
-                    time.sleep(1)
+                    meshvalues= self.map(self._snr, meshgrid)
+                    while (True):
+                        completed = meshvalues._index
+                        if (completed == len(meshgrid)): break
+                        print('   [multiprocessing] Waiting for', len(meshgrid)-completed, 'tasks...')
+                        time.sleep(1)
 
-                #pool.close()
-                #pool.join()
+                    #pool.close()
+                    #pool.join()
 
-            else:
-                meshvalues = map(self._snr, meshgrid)
+                else:
+                    meshvalues = map(self._snr, meshgrid)
 
-            #print meshvalues
+                #print meshvalues
 
-            valuesforinterpolator = np.zeros([len(x) for x in grids])
-            for ij,val in zip(meshcoord,meshvalues):
-                i,j=ij
-                valuesforinterpolator[i,j]=val
+                valuesforinterpolator = np.zeros([len(x) for x in grids])
+                for ij,val in zip(meshcoord,meshvalues):
+                    i,j=ij
+                    valuesforinterpolator[i,j]=val
 
-            snrinterpolant = scipy.interpolate.RegularGridInterpolator(points=grids,values=valuesforinterpolator,bounds_error=False,fill_value=None)
+                snrinterpolant = scipy.interpolate.RegularGridInterpolator(points=grids,values=valuesforinterpolator,bounds_error=False,fill_value=None)
+
+                with open(self.snrfile, 'wb') as f: pickle.dump(snrinterpolant, f)
+
+            with open(self.snrfile, 'rb') as f: snrinterpolant = pickle.load(f)
 
             self._snrinterpolant = snrinterpolant
-
-            #    with open(self.tempfile, 'wb') as f: pickle.dump(snrinterpolant, f)
-
-            #with open(self.tempfile, 'rb') as f: self._snrinterpolant = pickle.load(f)
 
         return self._snrinterpolant
 
@@ -565,6 +573,23 @@ class detectability(object):
         interpolated_values = interpolant(np.transpose([m1,m2,z]))
 
         return interpolated_values if len(interpolated_values)>1 else interpolated_values[0]
+    
+    def quickeval(self, m1, m2, z):
+        """
+        Don't interpolate Pw over m1, m2, z, instead just rely on fact that SNR has been interpolated over m1z, m2z, so SNR(m1, m2, z) is easy and accurate,
+        and that Pw has been interpolated over w. i.e. neglect any bias from noise in SNR interpolation feeding into Pw through non-linearity in Pw.
+        This avoids building a costly 3D interpolator, but is a bit less accurate (I have not tested by how much).
+
+        Note, the sensible variables here are m1z, m2z, dL, i.e. redshifted masses m*(1+z) and luminosity distance.
+
+        """
+
+        if not hasattr(m1, "__len__"): m1=[m1]
+        if not hasattr(m2, "__len__"): m2=[m2]
+        if not hasattr(z, "__len__"): z=[z]
+
+        result = self._compute(np.array([m1, m2, z]))
+        return result if np.shape(result)!=(1,) else result[0]
 
     def __call__(self,m1,m2,z):
         ''' Evaluate the interpolant'''
