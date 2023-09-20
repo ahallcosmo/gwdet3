@@ -1,6 +1,8 @@
 # gwdet3
 
-### A fork of gwdet translated to Python3 by Alex Hall. See original readme below.
+### A fork of gwdet translated to Python 3 and with some added functionality. Written by Alex Hall. See original readme below.
+
+As well as updating the code to Python 3, I have added the ```quickeval``` method to the ```detectability``` class. This calls the ```_compute``` method. Upon instantiating the class, an interpolant for the SNR will be created and pickled, if it does not exist already. If the interpolant already exists, it will be read and the interpolated SNR will be fed to the interpolated Pw distribution rather than exactly computing the SNR. This avoids having to compute the exact SNR at every point in a dense 3D grid over (m1, m2, z), at the cost of numerical errors coming from noise in the interpolated SNR values giving bias in Pw due to its non-linearity.
 
 # gwdet
 
