@@ -4,7 +4,7 @@
 
 As well as updating the code to Python 3, I have added the ```quickeval``` method to the ```detectability``` class. This calls the ```_compute``` method. Upon instantiating the class, an interpolant for the SNR will be created and pickled, if it does not exist already. If the interpolant already exists, it will be read and the interpolated SNR will be fed to the interpolated Pw distribution rather than exactly computing the SNR. This avoids having to compute the exact SNR at every point in a dense 3D grid over (m1, m2, z), at the cost of numerical errors coming from noise in the interpolated SNR values giving bias in Pw due to its non-linearity. The result is that residual differences in the detection probability compared with a brute-force caclulation are slightly larger than in the original ```gwdet```, reaching at most 0.008, although the median is actually smaller at close to 1e-5, see below:
 
-![compare_psnr](https://raw.githubusercontent.com/ahallcosmo/gwdet3/master/.github/images/compare_Psnr.pdf)
+![compare_psnr](https://raw.githubusercontent.com/ahallcosmo/gwdet3/master/.github/images/compare_Psnr.png)
 
 
 Note that the detectability is a function of the redshifted masses and the luminosity distance. Ideally I would like to do away entirely with source-frame mass and redshift, but have kept these variables to respect the API of ```gwdet```.
