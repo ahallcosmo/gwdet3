@@ -53,9 +53,9 @@ def plotting():
     from matplotlib import use #Useful when working on SSH
     use('Agg')
     from matplotlib import rc #Set plot defaults
-    font = {'family':'serif','serif':['cmr10'],'weight' : 'medium','size' : 16}
-    rc('font', **font)
-    rc('text',usetex=True)
+    #font = {'family':'serif','serif':['cmr10'],'weight' : 'medium','size' : 16}
+    #rc('font', **font)
+    #rc('text',usetex=True)
     rc('figure',max_open_warning=1000)
     #matplotlib.rcParams['xtick.top'] = True
     #matplotlib.rcParams['ytick.right'] = True
@@ -578,7 +578,7 @@ class detectability(object):
         """
         Don't interpolate Pw over m1, m2, z, instead just rely on fact that SNR has been interpolated over m1z, m2z, so SNR(m1, m2, z) is easy and accurate,
         and that Pw has been interpolated over w. i.e. neglect any bias from noise in SNR interpolation feeding into Pw through non-linearity in Pw.
-        This avoids building a costly 3D interpolator, but is a bit less accurate (I have not tested by how much).
+        This avoids building a costly 3D interpolator, and shows excellent accuracy compared with a direct calculation (see compare_Psnr.pdf).
 
         Note, the sensible variables here are m1z, m2z, dL, i.e. redshifted masses m*(1+z) and luminosity distance.
 
@@ -594,7 +594,7 @@ class detectability(object):
     def __call__(self,m1,m2,z):
         ''' Evaluate the interpolant'''
 
-        return self.eval(m1,m2,z)
+        return self.quickeval(m1,m2,z)
 
 
 def compare_Pw():
@@ -604,7 +604,7 @@ def compare_Pw():
 
     # Download file from Emanuele Berti's website if it does not exist
     if not os.path.isfile("Pw_single.dat"):
-        urllib.request.urlretrieve('http://www.phy.olemiss.edu/~berti/research/Pw_single.dat', "Pw_single.dat")
+        urllib.request.urlretrieve('https://pages.jh.edu/eberti2/research/Pw_single.dat', "Pw_single.dat")
 
     wEm,PwEm=np.loadtxt("Pw_single.dat",unpack=True)
     wmy = np.linspace(-0.1,1.1,1000)
@@ -623,7 +623,7 @@ def compare_Pw():
     plt.savefig(sys._getframe().f_code.co_name+".pdf",bbox_inches='tight')
 
 
-def compare_Psnr():
+def compare_Psnr(use_old_eval=False):
     ''' Evaluate performace of the detectability interpolator against raw SNRs calculations '''
 
     plotting() # Initialized plotting stuff
@@ -639,7 +639,10 @@ def compare_Psnr():
 
     p=detectability()
     computed=p.compute(m1,m2,z)
-    interpolated=p(m1,m2,z)
+    if use_old_eval:
+        interpolated=p.eval(m1,m2,z)
+    else:
+        interpolated=p(m1,m2,z)
 
     computed=np.array(computed)
     interpolated=np.array(interpolated)
