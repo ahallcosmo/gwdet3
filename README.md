@@ -1,15 +1,16 @@
 # gwdet3
 
-### A fork of gwdet translated to Python 3 and with some added functionality. Written by Alex Hall. See original readme below.
+### A fork of ```gwdet``` translated to Python 3 and with some added functionality, written by Alex Hall.
 
-As well as updating the code to Python 3, I have added the ```quickeval``` method to the ```detectability``` class. This calls the ```_compute``` method. Upon instantiating the class, an interpolant for the SNR will be created and pickled, if it does not exist already. If the interpolant already exists, it will be read and the interpolated SNR will be fed to the interpolated Pw distribution rather than exactly computing the SNR. This avoids having to compute the exact SNR at every point in a dense 3D grid over (m1, m2, z), at the cost of numerical errors coming from noise in the interpolated SNR values giving bias in Pw due to its non-linearity. The result is that residual differences in the detection probability compared with a brute-force caclulation are slightly larger than in the original ```gwdet```, reaching at most 0.008, although the median is actually smaller at close to 1e-5, see below:
+As well as updating the code to Python 3, I have added the ```quickeval``` method to the ```detectability``` class. This is now the default behaviour of the ```__call__``` method for this class. When called, a 2D interpolant for the SNR over the redshifted component masses for a merger at a reference luminosity distance of 1 Mpc will be created and pickled, if it does not exist already. The SNR at the requested redshift is computed from this interpolant by dividing by the luminosity distance. This is then fed to the Pw distribution interpolant to compute the detection probability. This sidesteps the old ```eval``` method of generating an interpolant over a dense 3D grid in [m1, m2, z], at the cost of numerical errors coming from noise in the interpolated SNR values inducing a bias in Pw due to its non-linearity. The result is that residual differences in the detection probability compared with a brute-force caclulation are slightly larger than in the original ```gwdet```, reaching at most 0.008, although the median is actually smaller at close to 1e-5, see below:
 
 ![compare_psnr](https://raw.githubusercontent.com/ahallcosmo/gwdet3/master/.github/images/compare_Psnr.png)
 
+The old method is still available as ```eval``` in the  ```detectability``` class.
 
-Note that the detectability is a function of the redshifted masses and the luminosity distance. Ideally I would like to do away entirely with source-frame mass and redshift, but have kept these variables to respect the API of ```gwdet```.
+Note that the detectability is a function of the redshifted masses and the luminosity distance. Ideally I would like to do away entirely with source-frame mass and redshift, but have retained these variables to respect the API of the original ```gwdet```.
 
-# gwdet
+# Original gwdet README by Davide Gerosa
 
 #### Detectability of gravitational-wave signals from compact binary coalescences
 
